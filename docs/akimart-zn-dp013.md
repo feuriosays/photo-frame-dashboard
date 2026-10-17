@@ -110,9 +110,18 @@ If checking the com.google.android.webview package returns an empty or error sta
 
 **CRITICAL WARNING:** Before running the following disable commands to shut down the stock photo shell, ensure you have already installed a custom application runner or alternate kiosk launcher package (such as Nova Launcher, Fully Kiosk, or WallPanel) onto the device using *adb install path/to/app.apk*. If you drop the stock user interface layer without another environment ready to receive system intents, your screen will go entirely blank.
 
-1. **Neutralizing Over-The-Air (OTA) Tasks:** White-label hardware brands frequently distribute hidden background background updates that silently alter partition tracking hooks or close open communication backdoors. Freeze the update daemon completely to safeguard your permanent terminal access:
-    * `pm disable com.rockchip.ota`
-2. **Terminating the Primary UI:** To drop the frame out of its standard commercial environment loop, use the explicit user landscape flag against the underlying net.frameo.frame configuration target:
+1. **Locating Hidden Update Packages:** White-label hardware brands frequently distribute hidden background update engines under varying package signatures. Run a targeted grep query inside your root shell to identify the exact update daemons on your device:
+    * `pm list packages | grep -E "update|ota|fota|card"`
+    * *Expected Output on ZN-DP013:*
+        * `package:com.adups.fota`
+        * `package:android.rockchip.update.service`
+        * `package:com.android.dreams.phototable`
+
+2. **Neutralizing Over-The-Air (OTA) Tasks:** Freeze the discovered automatic updating services to safeguard your permanent development access and prevent the manufacturer from pushing silent background firmware patches:
+    * `pm disable-user --user 0 com.adups.fota`
+    * `pm disable-user --user 0 android.rockchip.update.service`
+
+3. **Terminating the Primary UI:** To drop the frame out of its standard commercial environment loop, apply the same user-scoped landscape configuration flag against the underlying net.frameo.frame target:
     * `pm disable-user --user 0 net.frameo.frame`
     * *The stock Frameo interface will immediately vanish from your photo frame's physical display panel, turning the machine over to your custom dashboard environment.*
 
@@ -144,13 +153,16 @@ If you ever want to reconfigure your unit back into a standard digital frame for
 1. **Re-establish the Physical Link:** Because the wireless terminal bridges were severed in the previous step, you cannot connect over Wi-Fi out of nowhere. Connect your phone data cable directly from a standard USB-A port on your PC to the USB-C slot on the side of the frame.
 2. Verify the hardware connection list is tracking cleanly:
     * `adb devices`
-3. Open the internal system console line and elevate your session to root status:
+3. **Reinstalling the Stock Application Framework (If Wiped):** If a recovery wipe or system reset has removed the factory user interface entirely, push your locally stored backup file from Step 4 back onto the frame from your computer terminal:
+    * `adb install net.frameo.frame.apk`
+4. Open the internal system console line and elevate your session to root status:
     * `adb shell`
     * `su`
     * *The prompt signature will switch to a standard # marker, confirming active administrator clearance.*
-4. Run these package restoration lines sequentially inside your active root shell to restore the factory default settings:
-    * `pm enable com.rockchip.ota`
+5. Run these package restoration lines sequentially inside your active root shell to restore the factory default settings:
+    * `pm enable com.adups.fota`
+    * `pm enable android.rockchip.update.service`
     * `pm enable-user --user 0 net.frameo.frame`
-5. **Hardware Recovery Loop Fallback:** Alternatively, if a custom background layout script misbehaves so severely that it breaks user interface rendering entirely and freezes your command layer access, you can force an independent hardware wipe right from your computer's terminal box:
+6. **Hardware Recovery Loop Fallback:** Alternatively, if a custom background layout script misbehaves so severely that it breaks user interface rendering entirely and freezes your command layer access, you can force an independent hardware wipe right from your computer's terminal box:
     * `adb reboot recovery`
     * *Note:* The motherboard will immediately shut down and start up inside the native Android system recovery menu console. You can plug a standard wired USB keyboard into the frame's USB port to navigate the options, choose the "Wipe data/factory reset" instruction, and return the entire frame back to clean out-of-the-box condition.
