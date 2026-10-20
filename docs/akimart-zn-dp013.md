@@ -1,168 +1,169 @@
 # Akimart ZN-DP013 15.6" Digital Photo Frame (32GB Variant)
 
-The Akimart ZN-DP013 is a 15.6-inch white-label display running Frameo on a Rockchip RK3326 chip. Unlike the heavily locked-down ZN-DP1501 variants often found in community hardware troubleshooting threads, the ZN-DP013 features fully functional internal data traces on its physical USB port interface, allowing for a clean, native developer pathway out of the box.
+The Akimart ZN-DP013 is a 15.6-inch white-label display running Frameo on a Rockchip RK3326 chip. It allows standard ADB access through its USB-C port. 
 
-Follow this configuration path to safely isolate your network, unlock wireless ADB layers, verify your underlying architecture properties, fix the internal system WebView, and preserve system settings against automated manufacturer updates.
+This guide provides the steps to safely connect to the device, check its firmware properties, disable the stock launcher interface, and prevent background manufacturer updates.
 
 ## Prerequisites
 
-1. **A Reliable Phone Data Cable:** A standard USB-A to USB-C sync cable sourced from a modern smartphone (Samsung, Pixel, OnePlus, etc.). Do not use a straight USB-C to USB-C cord due to unstable Power Delivery negotiation layers on this chip.
-2. **Android SDK Platform Tools:** Ensure the basic adb software packages are installed on your host computer.
-3. **Python 3.x (Optional Fallback):** Only required if you run into a rare hardware timing loop and need to deploy the polling script.
+1. **USB Cable:** A working USB-A to USB-C cable that supports data transfer.
+2. **Android SDK Platform Tools**
 
 ---
 
-## Step 1: Network Isolation & Unlocking the Developer Interface
+## Step 1: Disconnecting from the Internet and Enabling ADB
 
-To guarantee the frame does not pull down a silent background manufacturer update before you can disable the update services, you must isolate the device from the internet during initialization.
+To prevent the frame from downloading background updates before you can disable the stock interface and update services, keep the device disconnected from the internet during setup.
 
-1. **Air-Gap the Setup:** Turn on the digital frame. When prompted during the initial setup wizard, **skip the Wi-Fi connection step entirely**. 
-2. **Secondary Safeguard:** If your specific firmware build insists on a Wi-Fi link to proceed, connect the frame to a temporary Wi-Fi Access Point configured with a deliberately **invalid default gateway**. This tricks the frame into establishing a local connection without giving it internet access.
-3. Open the main **Settings** menu.
-4. Scroll down and tap on **Join Beta Program**. 
-5. Enabling this mode exposes the hidden native development controls, showing a radio button to enable **ADB Access**. Toggle this setting to **ON**.
-
----
-
-## Step 2: Running the Connection Check
-1. Connect your phone data cable directly from a standard USB-A port on your PC to the USB-C slot on the side of the frame.
-2. Open a terminal prompt on your computer and evaluate the hardware connection list:
-    * `adb devices`
-3. Look at your frame's display screen and accept the standard RSA Security permission window to permanently authenticate the connection loop.
-
-### Optional Fallback: Intercepting Volatile Connection Timings (Untested Workaround)
-*Note: The author connected instantly without this issue on the ZN-DP013. This fallback is strictly provided as a suggested, untested workaround if your specific host computer drops data streams before catching the frame interface.*
-
-Create a script named **usb_watcher.py** with the following code if needed:
-
-    import subprocess, time
-    print("Polling system USB lanes... Rapidly cycle the ADB toggle on your frame screen!")
-    subprocess.run(["adb", "kill-server"])
-    subprocess.run(["adb", "start-server"])
-    while True:
-        try:
-            stream = subprocess.check_output(["adb", "devices"]).decode("utf-8").strip().split("\n")
-            if len(stream) > 1 and stream.strip() != "":
-                print(f"\n?? Hardware link captured! Fixing bridge connections...")
-                if "unauthorized" in stream:
-                    subprocess.run(["adb", "kill-server"])
-                    subprocess.run(["adb", "devices"])
-                else: break
-        except Exception: pass
-        time.sleep(0.02)
-
-Run **python usb_watcher.py** in your terminal and quickly flip the frame's ADB Access toggle switch OFF and ON continuously until the security confirmation window locks onto the screen.
+1. Turn on the frame. When prompted during the initial setup wizard, **skip the Wi-Fi setup**.
+2. If your firmware requires a Wi-Fi connection to proceed, connect the frame to a local Wi-Fi network that has no internet access.
+3. Open the **Settings** menu.
+4. Go to **Join Beta Program**.
+5. Toggle **ADB Access** to **ON**.
 
 ---
 
-## Step 3: Migrating Permanently to Wireless ADB
-To avoid hanging long data wires from a wall-mounted dashboard console, immediately hand off the communication pathways to your local network infrastructure.
+## Step 2: Setting Up Wireless ADB
 
-1. While the device is actively verified via the initial USB bridge connection, set the network listener port flags:
-    * `adb tcpip 5555`
-2. Safely unplug the physical data cable from your computer.
-3. If you skipped Wi-Fi earlier, you can now safely connect the frame to your home network. Look up its active local address inside Settings -> Wi-Fi (e.g., 192.168.1.45).
-4. Establish your clean wireless terminal link:
-    * `adb connect YOUR_FRAME_IP:5555`
-*Note: This internal networking state successfully survives hard power drops and system reboots. You do not need to reproduce the physical cable initialization sequence unless your network architecture drops out or reassigns the frame's network IP address.*
+You can configure ADB to run over Wi-Fi so you do not need to keep a USB cable connected.
+
+1. Connect the frame to your computer via USB. Open the terminal on your computer and run these commands to set the persistent network properties:
+   ```bash
+   adb shell
+   su
+   setprop persist.adb.tcp.port 5555
+   setprop service.adb.tcp.port 5555
+   exit
+   exit
+   ```
+
+2. Now restart the ADB daemon in network mode from your computer's terminal:
+   ```bash
+   adb tcpip 5555
+   ```
+
+3. Unplug the USB cable from your computer.
+
+4. Connect the frame to your local Wi-Fi network. Find its IP address under **Settings** -> **Wi-Fi**.
+
+5. Connect wirelessly from your computer's terminal:
+   ```bash
+   adb connect YOUR_FRAME_IP:5555
+   ```
+
+*Note: Using the persistent properties allows this network configuration to survive system reboots. You will only need to run the `adb connect` command again if the frame's IP address changes.*
 
 ---
 
-## Step 4: Extracting and Backing Up the Stock Frameo APK (Safety Net)
+## Step 3: Backing Up the Stock Frameo APK
 
-Before breaking out of the manufacturer's jail or running package restrictions, pull a complete compiled copy of the factory photo framework application directly onto your computer. This creates a bulletproof local restore package in case a future system wipe or recovery reset leaves the device without its core interface assets.
+Back up the original Frameo application to your computer before disabling any services.
 
-1. **Locate the Application Path:** Find the physical path where the active Frameo application file is stored on the device's internal storage layer:
-    * `adb shell pm path net.frameo.frame`
-    * *Expected Output:* `package:/data/app/net.frameo.frame-xxxxxx/base.apk` (where `xxxxxx` is a unique system-generated alphanumeric string).
+1. Find the application path on the device:
+   ```bash
+   adb shell pm path net.frameo.frame
+   ```
+   
+   *Expected Output:* `package:/system/priv-app/Frameo/Frameo.apk`
 
-2. **Download the Backup Package:** Download the base application file directly to your host computer's active directory, renaming it cleanly to identify it later:
-    * `adb pull /data/app/net.frameo.frame-xxxxxx/base.apk net.frameo.frame.apk`
-    * *Verification Target:* Once the download stream wraps up, check the file properties on your computer. The completed backup file should register on your hard drive at exactly **64,040,990 bytes**. Your safety net is now fully established.
+2. Pull the file to your computer (replace the path with the exact output from the above command):
+   ```bash
+   adb pull /system/priv-app/Frameo/Frameo.apk Frameo.apk
+   ```
+   
+   *Note: The completed backup file size is approximately 64 MB (64,040,990 bytes).*
 
+---
 
-## Step 5: System Architecture & WebView Verification
+## Step 4: Checking Device Properties
 
-Before making modifications to application spaces, open an elevated shell to evaluate system properties. 
+Verify your device properties to confirm they match this hardware configuration.
 
-1. Drop into the active network command shell:
-    * `adb shell`
-2. Request administrator context permissions:
-    * `su`
-    * *The prompt signature will immediately switch to a standard # marker, confirming root access.*
-3. Run these environment diagnostic calls to map your firmware profile:
-    * `getprop ro.board.platform`
-    * `getprop ro.build.version.release`
-    * `dumpsys package com.google.android.webview | grep versionName`
+1. Open the ADB shell:
+   ```bash
+   adb shell
+   ```
+
+2. Switch to the root user:
+   ```bash
+   su
+   ```
+   
+   *The terminal prompt will change to # confirming root access.*
+
+3. Run the following commands to check the firmware properties:
+   ```bash
+   getprop ro.board.platform
+   getprop ro.build.version.release
+   getprop ro.build.fingerprint
+   getprop ro.build.display.id
+   dumpsys package com.google.android.webview | grep versionName
+   ```
 
 ### Expected Verified Log Targets
 * **Platform:** rk3326
 * **Android Version:** 8.1.0
+* **Build Fingerprint:** rockchip/rk3326_go/rk3326_go:8.1.0/OC/084913:user/release-keys
+* **Firmware Display ID:** SSA_Frame_20260108
 * **WebView Engine Version:** Blank / Returns Error Status
 
-### Resolving the Hidden WebView Situation
-If checking the com.google.android.webview package returns an empty or error state, it is because Android Oreo on this firmware build has suppressed the standalone Google WebView engine package in favor of the stock system core. If you notice your custom dashboard layouts or web applications failing to compile or display right, you must explicitly enable the web rendering framework manually via your root shell:
-* `pm enable com.google.android.webview`
+---
+
+## Step 5: Disabling the Stock Interface and Update Services
+
+> [!WARNING]
+> **SECURITY WARNING:** Enabling ADB Access grants root privileges over the network via port 5555 without authentication. Deploy this device only on an isolated network.
+
+**CRITICAL WARNINGS:** 
+1. Before disabling the stock photo interface, ensure you have already installed an alternative launcher or kiosk application (such as Nova Launcher, Fully Kiosk, or WallPanel) using `adb install path/to/app.apk`. If you disable the stock UI without an alternative launcher installed, the screen will go blank.
+2. Ensure you have already completed **Step 3** to secure a backup of the stock APK before proceeding.
+
+Run these commands inside the root shell (`adb shell` followed by `su`):
+
+1. Identify the update services on the device:
+   ```bash
+   pm list packages | grep -E "update|ota|fota|card"
+   ```
+   
+   *Expected Output:*
+   ```text
+   package:com.adups.fota
+   package:android.rockchip.update.service
+   package:com.android.dreams.phototable
+   ```
+
+2. Disable the automatic update services:
+   ```bash
+   pm disable --user 0 com.adups.fota
+   pm disable --user 0 android.rockchip.update.service
+   ```
+
+3. Disable the primary stock Frameo user interface:
+   ```bash
+   pm disable --user 0 net.frameo.frame
+   ```
+   
+   *The stock interface will stop running, and the device will switch to your custom launcher.*
 
 ---
 
-## Step 6: Breaking the Manufacturer Jail & Disabling Stock Shells
+## Step 6: Clearing Cache and Disconnecting
 
-**CRITICAL WARNING:** Before running the following disable commands to shut down the stock photo shell, ensure you have already installed a custom application runner or alternate kiosk launcher package (such as Nova Launcher, Fully Kiosk, or WallPanel) onto the device using *adb install path/to/app.apk*. If you drop the stock user interface layer without another environment ready to receive system intents, your screen will go entirely blank.
+Run these final storage optimization and cleanup commands inside your root shell.
 
-1. **Locating Hidden Update Packages:** White-label hardware brands frequently distribute hidden background update engines under varying package signatures. Run a targeted grep query inside your root shell to identify the exact update daemons on your device:
-    * `pm list packages | grep -E "update|ota|fota|card"`
-    * *Expected Output on ZN-DP013:*
-        * `package:com.adups.fota`
-        * `package:android.rockchip.update.service`
-        * `package:com.android.dreams.phototable`
+1. Do **NOT** run destructive directory wipes like `rm -rf /cache/*`, as this firmware may require the existing recovery structures inside `/cache`.
 
-2. **Neutralizing Over-The-Air (OTA) Tasks:** Freeze the discovered automatic updating services to safeguard your permanent development access and prevent the manufacturer from pushing silent background firmware patches:
-    * `pm disable-user --user 0 com.adups.fota`
-    * `pm disable-user --user 0 android.rockchip.update.service`
+2. Clear out the residual application database and trim the filesystem:
+   ```bash
+   pm clear net.frameo.frame
+   vdc fstrim dotrim
+   ```
+   
+   *Note: Running `pm clear` will permanently wipe the stock Frameo user settings and photos. If you want to retain your stock configuration data as a fallback, you can safely skip the `pm clear` command.*
 
-3. **Terminating the Primary UI:** To drop the frame out of its standard commercial environment loop, apply the same user-scoped landscape configuration flag against the underlying net.frameo.frame target:
-    * `pm disable-user --user 0 net.frameo.frame`
-    * *The stock Frameo interface will immediately vanish from your photo frame's physical display panel, turning the machine over to your custom dashboard environment.*
-
----
-
-## Step 7: Deep Storage Optimization & Secure Session Teardown
-
-Since the stock applications have been frozen and the environment layers migrated over to your wireless console loop, execute this specific root optimization routine to flush application memory and clean up file indexing configurations without altering the device's system hooks.
-
-1. **Evaluating Cache Structure Stability:** Running a deep verification pass via `ls -lR` on this specific ZN-DP013 build reveals that the `/cache` partition does not hold hidden manufacturer update debris or bloating installation setups. Instead, it is cleanly populated with essential system links and native recovery structures. Do **NOT** run destructive recursive directory deletion commands like `rm -rf /cache/*`, as wiping these core layout nodes can destabilize recovery pathways.
-
-2. **Executing Safe, Targeted Storage Maintenance:** To safely optimize file spaces without touching any of the filesystem anchors or core system components, run only these two targeted commands inside your root shell to clear out active database profiles and organize the internal flash disk sectors:
-    * `pm clear net.frameo.frame`
-    * `vdc fstrim dotrim`
-    * *Success Check:* The system will clear out residual frame databases and runtime application configurations, while the `vdc fstrim` call forces the low-level flash chip controller to index dead block space, keeping navigation and rendering processing speeds high over time.
-
-3. **Secure Disconnection Routine:** Once the optimization parameters match target baselines, exit the internal administrator context loops sequentially and sever your local computer bridge:
-    * `exit`
-    * `exit`
-    * `adb disconnect`
-    * *Note:* The terminal session will cleanly shut down over your local Wi-Fi interface. Your PC is now completely detached from the frame, and your custom launcher dashboard has exclusive control of the 15.6" physical screen matrix.
-
----
-
-## Step 8: Clean Restoration & Safe Factory Reset
-
-If you ever want to reconfigure your unit back into a standard digital frame for decorative use, or if a dashboard script misbehaves and locks user interface components, you can reverse your system footprints safely.
-
-1. **Re-establish the Physical Link:** Because the wireless terminal bridges were severed in the previous step, you cannot connect over Wi-Fi out of nowhere. Connect your phone data cable directly from a standard USB-A port on your PC to the USB-C slot on the side of the frame.
-2. Verify the hardware connection list is tracking cleanly:
-    * `adb devices`
-3. **Reinstalling the Stock Application Framework (If Wiped):** If a recovery wipe or system reset has removed the factory user interface entirely, push your locally stored backup file from Step 4 back onto the frame from your computer terminal:
-    * `adb install net.frameo.frame.apk`
-4. Open the internal system console line and elevate your session to root status:
-    * `adb shell`
-    * `su`
-    * *The prompt signature will switch to a standard # marker, confirming active administrator clearance.*
-5. Run these package restoration lines sequentially inside your active root shell to restore the factory default settings:
-    * `pm enable com.adups.fota`
-    * `pm enable android.rockchip.update.service`
-    * `pm enable-user --user 0 net.frameo.frame`
-6. **Hardware Recovery Loop Fallback:** Alternatively, if a custom background layout script misbehaves so severely that it breaks user interface rendering entirely and freezes your command layer access, you can force an independent hardware wipe right from your computer's terminal box:
-    * `adb reboot recovery`
-    * *Note:* The motherboard will immediately shut down and start up inside the native Android system recovery menu console. You can plug a standard wired USB keyboard into the frame's USB port to navigate the options, choose the "Wipe data/factory reset" instruction, and return the entire frame back to clean out-of-the-box condition.
+3. Exit the root shell and disconnect your computer from the frame:
+   ```bash
+   exit
+   exit
+   adb disconnect
+   ```
